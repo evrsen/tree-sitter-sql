@@ -12,7 +12,7 @@ enum TokenType {
 #define MALLOC_STRING_SIZE 1024
 
 typedef struct LexerState {
-  char* start_tag;
+  char *start_tag;
 } LexerState;
 
 void *tree_sitter_sql_external_scanner_create() {
@@ -22,7 +22,7 @@ void *tree_sitter_sql_external_scanner_create() {
 }
 
 void *tree_sitter_sql_external_scanner_destroy(void *payload) {
-  LexerState *state = (LexerState*)payload;
+  LexerState *state = (LexerState *)payload;
   if (state->start_tag != NULL) {
     free(state->start_tag);
     state->start_tag = NULL;
@@ -31,7 +31,7 @@ void *tree_sitter_sql_external_scanner_destroy(void *payload) {
   return NULL;
 }
 
-char* add_char(char* text, size_t* text_size, char c, int index) {
+char *add_char(char *text, size_t *text_size, char c, int index) {
   if (text == NULL) {
     text = malloc(sizeof(char) * MALLOC_STRING_SIZE);
     *text_size = MALLOC_STRING_SIZE;
@@ -40,7 +40,7 @@ char* add_char(char* text, size_t* text_size, char c, int index) {
   // will break when indexes advances more than MALLOC_STRING_SIZE
   if (index + 1 >= *text_size) {
     *text_size += MALLOC_STRING_SIZE;
-    char* tmp = malloc(*text_size * sizeof(char));
+    char *tmp = malloc(*text_size * sizeof(char));
     strncpy(tmp, text, *text_size);
     free(text);
     text = tmp;
@@ -51,10 +51,10 @@ char* add_char(char* text, size_t* text_size, char c, int index) {
   return text;
 }
 
-char* scan_dollar_string_tag(TSLexer *lexer) {
-  char* tag = NULL;
+char *scan_dollar_string_tag(TSLexer *lexer) {
+  char *tag = NULL;
   int index = 0;
-  size_t* text_size = malloc(sizeof(size_t));
+  size_t *text_size = malloc(sizeof(size_t));
   *text_size = 0;
   if (lexer->lookahead == '$') {
     tag = add_char(tag, text_size, '$', index);
@@ -64,7 +64,8 @@ char* scan_dollar_string_tag(TSLexer *lexer) {
     return NULL;
   }
 
-  while (lexer->lookahead != '$' && !iswspace(lexer->lookahead) && !lexer->eof(lexer)) {
+  while (lexer->lookahead != '$' && !iswspace(lexer->lookahead) &&
+         !lexer->eof(lexer)) {
     tag = add_char(tag, text_size, lexer->lookahead, ++index);
     lexer->advance(lexer, false);
   }
@@ -81,12 +82,15 @@ char* scan_dollar_string_tag(TSLexer *lexer) {
   }
 }
 
-bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
-  LexerState *state = (LexerState*)payload;
-  if (valid_symbols[DOLLAR_QUOTED_STRING_START_TAG] && state->start_tag == NULL) {
-    while (iswspace(lexer->lookahead)) lexer->advance(lexer, true);
+bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer,
+                                           const bool *valid_symbols) {
+  LexerState *state = (LexerState *)payload;
+  if (valid_symbols[DOLLAR_QUOTED_STRING_START_TAG] &&
+      state->start_tag == NULL) {
+    while (iswspace(lexer->lookahead))
+      lexer->advance(lexer, true);
 
-    char* start_tag = scan_dollar_string_tag(lexer);
+    char *start_tag = scan_dollar_string_tag(lexer);
     if (start_tag == NULL) {
       return false;
     }
@@ -100,9 +104,10 @@ bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer, const 
   }
 
   if (valid_symbols[DOLLAR_QUOTED_STRING_END_TAG] && state->start_tag != NULL) {
-    while (iswspace(lexer->lookahead)) lexer->advance(lexer, true);
+    while (iswspace(lexer->lookahead))
+      lexer->advance(lexer, true);
 
-    char* end_tag = scan_dollar_string_tag(lexer);
+    char *end_tag = scan_dollar_string_tag(lexer);
     if (end_tag != NULL && strcmp(end_tag, state->start_tag) == 0) {
       free(state->start_tag);
       state->start_tag = NULL;
@@ -118,9 +123,10 @@ bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer, const 
 
   if (valid_symbols[DOLLAR_QUOTED_STRING]) {
     lexer->mark_end(lexer);
-    while (iswspace(lexer->lookahead)) lexer->advance(lexer, true);
+    while (iswspace(lexer->lookahead))
+      lexer->advance(lexer, true);
 
-    char* start_tag = scan_dollar_string_tag(lexer);
+    char *start_tag = scan_dollar_string_tag(lexer);
     if (start_tag == NULL) {
       return false;
     }
@@ -129,7 +135,7 @@ bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer, const 
       return false;
     }
 
-    char* end_tag = NULL;
+    char *end_tag = NULL;
     while (true) {
       if (lexer->eof(lexer)) {
         free(start_tag);
@@ -159,7 +165,8 @@ bool tree_sitter_sql_external_scanner_scan(void *payload, TSLexer *lexer, const 
   return false;
 }
 
-unsigned tree_sitter_sql_external_scanner_serialize(void *payload, char *buffer) {
+unsigned tree_sitter_sql_external_scanner_serialize(void *payload,
+                                                    char *buffer) {
   LexerState *state = (LexerState *)payload;
   if (state == NULL || state->start_tag == NULL) {
     return 0;
@@ -169,7 +176,8 @@ unsigned tree_sitter_sql_external_scanner_serialize(void *payload, char *buffer)
   if (tag_length >= TREE_SITTER_SERIALIZATION_BUFFER_SIZE) {
     return 0;
   }
-  strcpy(buffer, state->start_tag);
+  strncpy(buffer, state->start_tag, tag_length);
+  buffer[tag_length - 1] = '\0'; // Ensure null termination
   if (state->start_tag != NULL) {
     free(state->start_tag);
     state->start_tag = NULL;
@@ -177,12 +185,16 @@ unsigned tree_sitter_sql_external_scanner_serialize(void *payload, char *buffer)
   return tag_length;
 }
 
-void tree_sitter_sql_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+void tree_sitter_sql_external_scanner_deserialize(void *payload,
+                                                  const char *buffer,
+                                                  unsigned length) {
   LexerState *state = (LexerState *)payload;
   state->start_tag = NULL;
   // A length of 1 can't exists.
   if (length > 1) {
-    state->start_tag = malloc(length);
-    strcpy(state->start_tag, buffer);
+    state->start_tag =
+        malloc(length + 1); // Allocate one extra byte for the null terminator
+    strncpy(state->start_tag, buffer, length);
+    state->start_tag[length] = '\0'; // Ensure null termination
   }
 }
