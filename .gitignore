@@ -11,4 +11,3 @@ package-lock.json
 /.build/
 /src/tree_sitter/
 /src/parser.c
-/src/*.json
